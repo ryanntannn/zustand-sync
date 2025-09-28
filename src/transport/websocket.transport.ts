@@ -15,6 +15,9 @@ const websocketTransportProvider = <TState extends Object>(
 
   let socket: WebSocket | null = null;
   let isConnected = false;
+  let hasReceivedInitialState = false;
+  let onInitStateCallback: ((initialState: Partial<TState>) => void) | null =
+    null;
 
   const connect = () => {
     if (
@@ -37,6 +40,15 @@ const websocketTransportProvider = <TState extends Object>(
     },
     onPatches: (callback) => {
       socket!.onmessage = (event) => {
+        if (!hasReceivedInitialState && onInitStateCallback) {
+          try {
+            onInitStateCallback(JSON.parse(event.data));
+            hasReceivedInitialState = true;
+          } catch (error) {
+            socket!.close();
+          }
+          return;
+        }
         try {
           const patches: JsonPatchOperation[] = JSON.parse(event.data);
           callback(patches);
@@ -49,12 +61,7 @@ const websocketTransportProvider = <TState extends Object>(
       };
     },
     onInitState: (callback) => {
-      socket!.onopen = () => {
-        console.log("WebSocket connected");
-        isConnected = true;
-        // TODO: fetch initial state from server
-        callback({});
-      };
+      onInitStateCallback = callback;
     },
     onDisconnect: (callback) => {
       socket!.onclose = () => {

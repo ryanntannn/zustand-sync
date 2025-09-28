@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,6 +23,7 @@ type Hub struct {
 	register chan *Client
 	unregister chan *Client
 	mutex sync.RWMutex
+	projectJson []byte
 }
 
 type Client struct {
@@ -59,6 +61,7 @@ func (pm *ProjectManager) getOrCreateHub(projectID string) *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		projectJson: []byte(`{}`),
 	}
 
 	pm.projects[projectID] = hub
@@ -119,12 +122,27 @@ func (c *Client) readPump() {
 
 	for {
 		_, message, err := c.conn.ReadMessage()
+		
+
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
+
+		patch, err:= jsonpatch.DecodePatch(message)
+
+		println(string(c.hub.projectJson))
+
+		if err != nil {
+			log.Printf("Invalid JSON patch from client %s in project %s: %v", c.id, c.projectID, err)
+			continue
+		}
+
+		c.hub.projectJson, _ = patch.Apply(c.hub.projectJson)
+
+		println(string(c.hub.projectJson))
 
 		log.Printf("Received message from client %s in project %s: %s", 
 			c.id, c.projectID, string(message))
@@ -168,6 +186,9 @@ func serveWS(projectManager *ProjectManager, w http.ResponseWriter, r *http.Requ
 
 	go client.writePump()
 	go client.readPump()
+
+	// send initial state to the new client	
+	client.send <- hub.projectJson
 }
 
 func main() {

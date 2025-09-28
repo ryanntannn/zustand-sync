@@ -52,3 +52,33 @@ export const useExampleStore = create(
 - [ ] Storage providers on server (Redis, Postgres, In-memory/Disk etc.)
 - [ ] Additional transport providers (WebRTC, HTTP Long Polling etc.)
 - [ ] Authentication and Authorization
+- [ ] Conflict resolution, disaster recovery and offline support
+
+## How It Works
+
+This sequence diagram illustrates the ideal flow of how `zustand-sync` works with a WebSocket transport provider:
+
+```mermaid
+sequenceDiagram
+		actor Store
+		participant syncedStoreMiddleware
+		participant patchGenerator
+		participant patchApplier
+		participant TransportProvider
+		actor OtherClient
+
+		Store->>syncedStoreMiddleware: Create new store with syncStoreMiddleware
+		syncedStoreMiddleware->>TransportProvider: Initialize transport (e.g. WebSocket)
+		TransportProvider->>syncedStoreMiddleware: First message (initialState)
+		syncedStoreMiddleware->>Store: set({...initialState})
+		Store->>syncedStoreMiddleware: Perform state update (e.g. increment())
+		syncedStoreMiddleware->>patchGenerator: generatePatch(oldState, newState)
+		patchGenerator->>syncedStoreMiddleware: patch
+		syncedStoreMiddleware->>TransportProvider: broadcastPatches(patch)
+		TransportProvider->>OtherClient: Transmit JSON Patch
+		OtherClient->>TransportProvider: Transmit JSON Patch
+		TransportProvider->>syncedStoreMiddleware: onPatches(patch)
+		syncedStoreMiddleware->>patchApplier: applyPatch(oldState, patch)
+		patchApplier->>syncedStoreMiddleware: newState
+		syncedStoreMiddleware->>Store: set(newState)
+```

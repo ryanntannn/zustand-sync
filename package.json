@@ -1,6 +1,6 @@
 {
   "name": "@ryanntannn/zustand-sync",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "keep your zustand stores synced across clients",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
