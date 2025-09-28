@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+*.md
+README*
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+websocket-server
+*.exe
+
+# Logs
+*.log
+
+# Docker files (we don't need these in the build context)
+Dockerfile*
+docker-compose*
+
+# Other artifacts
+tmp/
+temp/

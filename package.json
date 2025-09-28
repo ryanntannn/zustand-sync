@@ -1,0 +1,36 @@
+{
+  "name": "@ryanntannn/zustand-sync",
+  "version": "0.1.1",
+  "description": "keep your zustand stores synced across clients",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "files": [
+    "/dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit",
+    "test:types": "tsd"
+  },
+  "author": "Ryan Tan",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "react": "^19.1.1",
+    "tsd": "^0.33.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@types/ramda": "^0.31.1",
+    "fast-json-patch": "^3.1.1",
+    "ramda": "^0.31.3",
+    "zustand": "^5.0.8"
+  }
+}

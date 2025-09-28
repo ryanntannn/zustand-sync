@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "lib": ["dom"],
+    // Default compilation target for any code that runs in the browser
+    "target": "es2022",
+    "skipLibCheck": true,
+
+    // For all packages, let TypeScript use the following standardized way to
+    // resolve modules
+    "module": "esnext",
+    "moduleResolution": "bundler",
+
+    // Don't produce *.js files when running TypeScript. We use `tsup` to
+    // build our output files.
+    "noEmit": true,
+
+    // Transform JSX syntax from input *.tsx files into _jsx() calls in the outputted build
+    "jsx": "react-jsx",
+
+    // Settings with an effect on the generated code
+    "esModuleInterop": true, // Emit safer code for packages that use namespace/default imports
+    "stripInternal": true, // Don't emit public types for things annotated with @internal
+
+    // Allow importing JSON files
+    "resolveJsonModule": true,
+
+    // Use better type checking
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "allowUnreachableCode": false, // False makes this stricter: errors instead of warns
+    "allowUnusedLabels": false, // False makes this stricter: errors instead of warns
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src", "test"]
+}
