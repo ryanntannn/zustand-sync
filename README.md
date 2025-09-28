@@ -1,11 +1,15 @@
 # zustand-sync
 
+
+https://github.com/user-attachments/assets/bdb22ca8-0ecc-4185-9c25-f61cab7feb61
+
 A barebones middleware to sync zustand stores across multiple clients.
 `zustand-sync` uses JSON Patch (RFC 6902) under the hood to translate state changes into patches that can be sent over a transport layer.
 
 ## Basic Usage
 
 In your react project with zustand installed:
+![Area 2025-09-28 23:21:25](https://github.com/user-attachments/assets/1042c71b-57a3-4bc5-ae99-36dbf332b09f)
 
 ```
 npm install @ryanntannn/zustand-sync
