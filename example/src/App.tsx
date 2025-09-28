@@ -18,9 +18,10 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>Vite + React</h1>
+      <h1>Vite + React + zustand-sync</h1>
+      <h2>Count: {count}</h2>
       <div className="card">
-        <button onClick={increment}>count is {count}</button>
+        <button onClick={increment}>increment</button>
         <button onClick={decrement}>decrement</button>
         <p>Sync status: {isReady ? "🟢 Connected" : "🔴 Disconnected"}</p>
         <p>

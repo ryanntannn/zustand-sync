@@ -65,7 +65,6 @@ const websocketTransportProvider = <TState extends Object>(
     },
     onDisconnect: (callback) => {
       socket!.onclose = () => {
-        console.log("WebSocket disconnected");
         isConnected = false;
         callback();
       };

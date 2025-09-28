@@ -32,9 +32,7 @@ const middlewareImpl: InnerState = (config, options) => {
     transportProvider.onPatches(onPatch);
 
     transportProvider.onInitState((initialState) => {
-      console.log("Received initial state:", initialState);
       set((state) => setIsReady(true, { ...state, ...initialState }));
-      console.log("State after init:", get());
     });
 
     transportProvider.onDisconnect(() => {
