@@ -9,7 +9,6 @@ A barebones middleware to sync zustand stores across multiple clients.
 ## Basic Usage
 
 In your react project with zustand installed:
-![Area 2025-09-28 23:21:25](https://github.com/user-attachments/assets/1042c71b-57a3-4bc5-ae99-36dbf332b09f)
 
 ```
 npm install @ryanntannn/zustand-sync
