@@ -78,7 +78,7 @@ clean:
 dev: docker-stop docker-run logs
 
 # Production deployment
-deploy: docker-build
+publish: docker-build
 	@echo "Deploying to production..."
 	@echo "Remember to set proper environment variables and security settings!"
 	docker push $(IMAGE_NAME):latest

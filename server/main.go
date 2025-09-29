@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
+	"websocket-server/storage"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 type ProjectManager struct {
 	projects map[string]*Hub
 	mutex    sync.RWMutex
+	storageProvider storage.StorageProvider
 }
 
 type Hub struct {
@@ -42,8 +46,15 @@ var upgrader = websocket.Upgrader{
 }
 
 func newProjectManager() *ProjectManager {
+
+	storagePath := os.Getenv("STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "./data"
+	}
+
 	return &ProjectManager{
 		projects: make(map[string]*Hub),
+		storageProvider: storage.NewFileSystemStorage(storagePath),
 	}
 }
 
@@ -53,6 +64,15 @@ func (pm *ProjectManager) getOrCreateHub(projectID string) *Hub {
 
 	if hub, exists := pm.projects[projectID]; exists {
 		return hub
+	}	
+
+	projectJson, err := pm.storageProvider.Load(projectID)
+
+	if err != nil {
+		log.Printf("No existing data for project %s, starting fresh.", projectID)
+		projectJson = []byte(`{}`)
+	} else {
+		log.Printf("Loaded existing data for project %s", projectID)
 	}
 
 	hub := &Hub{
@@ -61,17 +81,17 @@ func (pm *ProjectManager) getOrCreateHub(projectID string) *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		projectJson: []byte(`{}`),
+		projectJson: projectJson,
 	}
 
 	pm.projects[projectID] = hub
-	go hub.run()
+	go hub.run(pm.storageProvider)
 	log.Printf("Created new hub for project: %s", projectID)
 	
 	return hub
 }
 
-func (h *Hub) run() {
+func (h *Hub) run(storageProvider storage.StorageProvider) {
 	for {
 		select {
 		case client := <-h.register:
@@ -87,9 +107,10 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
+			storageProvider.Save(h.projectID, h.projectJson)
 			h.mutex.Unlock()
 			log.Printf("Client %s disconnected from project %s. Total clients in project: %d", 
-				client.id, h.projectID, len(h.clients))
+				client.id, h.projectID, len(h.clients))		
 
 		case message := <-h.broadcast:
 			h.mutex.RLock()
@@ -192,6 +213,14 @@ func serveWS(projectManager *ProjectManager, w http.ResponseWriter, r *http.Requ
 }
 
 func main() {
+
+	godotenv.Load()
+	
+	PORT := os.Getenv("PORT")
+	if PORT == "" {
+		PORT = "8080"
+	}
+
 	projectManager := newProjectManager()
 
 	// Handle WebSocket connections with project routing
@@ -199,8 +228,8 @@ func main() {
 		serveWS(projectManager, w, r)
 	})
 
-	log.Println("WebSocket endpoint: ws://localhost:8080/ws/{projectId}")
-	err := http.ListenAndServe(":8080", nil)
+	log.Println("WebSocket endpoint: ws://localhost:" + PORT + "/ws/{projectId}")
+	err := http.ListenAndServe(":"+PORT, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
