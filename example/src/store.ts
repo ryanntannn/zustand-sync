@@ -9,7 +9,7 @@ type ExampleStore = {
 };
 
 export const useExampleStore = create(
-  syncStoreMiddleware(
+  syncStoreMiddleware<ExampleStore, { id: string }>(
     (set) => ({
       count: 0,
       increment: () => set((state) => ({ count: state.count + 1 })),
@@ -17,9 +17,12 @@ export const useExampleStore = create(
       reset: () => set({ count: 0 }),
     }),
     {
-      transport: WebSocketTransportProvider<ExampleStore>({
+      transport: WebSocketTransportProvider({
         projectId: "your-project-id",
       }),
+      user: {
+        id: "user-1",
+      },
     }
   )
 );

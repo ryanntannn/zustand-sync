@@ -7,36 +7,20 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"websocket-server/core"
 	"websocket-server/storage"
 
-	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 )
 
 type ProjectManager struct {
-	projects map[string]*Hub
+	projects map[string]*core.Hub
 	mutex    sync.RWMutex
 	storageProvider storage.StorageProvider
 }
 
-type Hub struct {
-	projectID string
-	clients map[*Client]bool
-	broadcast chan []byte
-	register chan *Client
-	unregister chan *Client
-	mutex sync.RWMutex
-	projectJson []byte
-}
 
-type Client struct {
-	hub *Hub
-	conn *websocket.Conn
-	send chan []byte
-	id string
-	projectID string
-}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -53,12 +37,12 @@ func newProjectManager() *ProjectManager {
 	}
 
 	return &ProjectManager{
-		projects: make(map[string]*Hub),
+		projects: make(map[string]*core.Hub),
 		storageProvider: storage.NewFileSystemStorage(storagePath),
 	}
 }
 
-func (pm *ProjectManager) getOrCreateHub(projectID string) *Hub {
+func (pm *ProjectManager) getOrCreateHub(projectID string) *core.Hub {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
 
@@ -75,101 +59,23 @@ func (pm *ProjectManager) getOrCreateHub(projectID string) *Hub {
 		log.Printf("Loaded existing data for project %s", projectID)
 	}
 
-	hub := &Hub{
-		projectID:  projectID,
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
-		projectJson: projectJson,
+	hub := &core.Hub{
+		ProjectID:  projectID,
+		Broadcast:  make(chan []byte),
+		Register:   make(chan *core.Client),
+		Unregister: make(chan *core.Client),
+		Clients:    make(map[*core.Client]bool),
+		ProjectJson: projectJson,
 	}
 
 	pm.projects[projectID] = hub
-	go hub.run(pm.storageProvider)
+	go hub.Run(pm.storageProvider)
 	log.Printf("Created new hub for project: %s", projectID)
 	
 	return hub
 }
 
-func (h *Hub) run(storageProvider storage.StorageProvider) {
-	for {
-		select {
-		case client := <-h.register:
-			h.mutex.Lock()
-			h.clients[client] = true
-			h.mutex.Unlock()
-			log.Printf("Client %s connected to project %s. Total clients in project: %d", 
-				client.id, h.projectID, len(h.clients))
 
-		case client := <-h.unregister:
-			h.mutex.Lock()
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-			storageProvider.Save(h.projectID, h.projectJson)
-			h.mutex.Unlock()
-			log.Printf("Client %s disconnected from project %s. Total clients in project: %d", 
-				client.id, h.projectID, len(h.clients))		
-
-		case message := <-h.broadcast:
-			h.mutex.RLock()
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
-			h.mutex.RUnlock()
-		}
-	}
-}
-
-func (c *Client) writePump() {
-	defer c.conn.Close()
-	for message := range c.send {
-		c.conn.WriteMessage(websocket.TextMessage, message)
-	}
-	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-}
-
-func (c *Client) readPump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-
-	for {
-		_, message, err := c.conn.ReadMessage()
-		
-
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-
-		patch, err:= jsonpatch.DecodePatch(message)
-
-		println(string(c.hub.projectJson))
-
-		if err != nil {
-			log.Printf("Invalid JSON patch from client %s in project %s: %v", c.id, c.projectID, err)
-			continue
-		}
-
-		c.hub.projectJson, _ = patch.Apply(c.hub.projectJson)
-
-		println(string(c.hub.projectJson))
-
-		log.Printf("Received message from client %s in project %s: %s", 
-			c.id, c.projectID, string(message))
-		c.hub.broadcast <- message
-	}
-}
 
 func serveWS(projectManager *ProjectManager, w http.ResponseWriter, r *http.Request) {
 	// Extract project ID from URL path
@@ -193,23 +99,23 @@ func serveWS(projectManager *ProjectManager, w http.ResponseWriter, r *http.Requ
 
 	hub := projectManager.getOrCreateHub(projectID)
 
-	clientID := fmt.Sprintf("client_%s_%d", projectID, len(hub.clients)+1)
-	
-	client := &Client{
-		hub:       hub,
-		conn:      conn,
-		send:      make(chan []byte, 256),
-		id:        clientID,
-		projectID: projectID,
+	clientID := fmt.Sprintf("client_%s_%d", projectID, len(hub.Clients)+1)
+
+	client := &core.Client{
+		Hub:       hub,
+		Conn:      conn,
+		Send:      make(chan []byte, 256),
+		Id:        clientID,
+		ProjectID: projectID,
 	}
 
-	client.hub.register <- client
+	client.Hub.Register <- client
 
-	go client.writePump()
-	go client.readPump()
+	go client.WritePump()
+	go client.ReadPump()
 
-	// send initial state to the new client	
-	client.send <- hub.projectJson
+	// send initial state to the new client
+	client.Send <- hub.ProjectJson
 }
 
 func main() {

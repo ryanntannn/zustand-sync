@@ -18,7 +18,12 @@ describe("zustand-sync-middleware", () => {
           decrement: () => set((state) => ({ count: state.count - 1 })),
           reset: () => set({ count: 0 }),
         }),
-        { transport: MockTransportProvider({ count: 0 }) }
+        {
+          transport: MockTransportProvider({ count: 0 }),
+          user: {
+            id: "1",
+          },
+        }
       )
     );
 
@@ -48,7 +53,7 @@ describe("zustand-sync-middleware", () => {
           decrement: () => set((state) => ({ count: state.count - 1 })),
           reset: () => set({ count: 0 }),
         }),
-        { transport: MockTransportProvider({ count: 0 }) }
+        { transport: MockTransportProvider({ count: 0 }), user: { id: "1" } }
       )
     );
     const useStoreB = create(
@@ -59,7 +64,7 @@ describe("zustand-sync-middleware", () => {
           decrement: () => set((state) => ({ count: state.count - 1 })),
           reset: () => set({ count: 0 }),
         }),
-        { transport: MockTransportProvider({ count: 0 }) }
+        { transport: MockTransportProvider({ count: 0 }), user: { id: "2" } }
       )
     );
 
